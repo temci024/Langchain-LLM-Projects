@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Youtube Script Writing Tool &#8212; Youtube Script Writing Tool 2024 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=6fefd858"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="youtube-script-writing-tool">
+<h1>Youtube Script Writing Tool<a class="headerlink" href="#youtube-script-writing-tool" title="Link to this heading">¶</a></h1>
+<section id="project-overview">
+<h2>Project Overview<a class="headerlink" href="#project-overview" title="Link to this heading">¶</a></h2>
+<p>This project aims to develop a YouTube Script Generator, a tool designed to assist content creators in generating scripts for YouTube videos. The tool utilizes Streamlit for the user interface and integrates with Google Palm for natural language processing capabilities.</p>
+<p>The workflow begins with the user providing the topic of the video and the expected video length in minutes. Additionally, the user can adjust the creativity limit using a slider, which controls the level of creativity in the generated script.</p>
+<p>Upon submission, the tool generates a script for the YouTube video based on the provided inputs. It utilizes the Google Palm API to generate creative and engaging content while adhering to the specified topic and length constraints.</p>
+<p>The user interface provides a streamlined experience, with a sidebar for inputting the Google API key and the main section for entering the video topic, expected length, and creativity limit. Upon generating the script, the tool displays the title, generated script, and a search engine result for further reference.</p>
+<p>Overall, the YouTube Script Generator enhances the content creation process for YouTube videos by providing creators with a convenient tool to generate engaging scripts tailored to their desired topics and lengths.</p>
+</section>
+<section id="code-utils">
+<h2>Code: utils<a class="headerlink" href="#code-utils" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">langchain.prompts</span> <span class="kn">import</span> <span class="n">PromptTemplate</span>
+<span class="kn">from</span> <span class="nn">langchain.chains</span> <span class="kn">import</span> <span class="n">LLMChain</span>
+<span class="kn">from</span> <span class="nn">langchain_community.tools</span> <span class="kn">import</span> <span class="n">DuckDuckGoSearchRun</span>
+<span class="kn">from</span> <span class="nn">langchain.llms</span> <span class="kn">import</span> <span class="n">GooglePalm</span>
+
+<span class="k">def</span> <span class="nf">generate_script</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span><span class="n">video_length</span><span class="p">,</span><span class="n">creativity</span><span class="p">,</span><span class="n">api_key</span><span class="p">):</span>
+
+    <span class="c1"># Template for generating &#39;Title&#39;</span>
+    <span class="n">title_template</span> <span class="o">=</span> <span class="n">PromptTemplate</span><span class="p">(</span>
+        <span class="n">input_variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">],</span> 
+        <span class="n">template</span><span class="o">=</span><span class="s1">&#39;Please come up with a title for a YouTube video on the  </span><span class="si">{subject}</span><span class="s1">.&#39;</span>
+        <span class="p">)</span>
+    
+    <span class="c1"># Template for generating &#39;Video Script&#39; using search engine</span>
+    <span class="n">script_template</span> <span class="o">=</span> <span class="n">PromptTemplate</span><span class="p">(</span>
+        <span class="n">input_variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;DuckDuckGo_Search&#39;</span><span class="p">,</span><span class="s1">&#39;duration&#39;</span><span class="p">],</span> 
+        <span class="n">template</span><span class="o">=</span><span class="s1">&#39;Create a script for a YouTube video based on this title for me. TITLE: </span><span class="si">{title}</span><span class="s1"> of duration: </span><span class="si">{duration}</span><span class="s1"> minutes using this search data </span><span class="si">{DuckDuckGo_Search}</span><span class="s1"> &#39;</span>
+    <span class="p">)</span>
+
+
+    <span class="c1"># Create Google Palm LLM model</span>
+    <span class="n">llm</span> <span class="o">=</span> <span class="n">GooglePalm</span><span class="p">(</span><span class="n">google_api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">creativity</span><span class="p">)</span>
+
+    <span class="c1">#Creating chain for &#39;Title&#39; &amp; &#39;Video Script&#39;</span>
+    <span class="n">title_chain</span> <span class="o">=</span> <span class="n">LLMChain</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">title_template</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">script_chain</span> <span class="o">=</span> <span class="n">LLMChain</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">script_template</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># https://python.langchain.com/docs/modules/agents/tools/integrations/ddg</span>
+    <span class="n">search</span> <span class="o">=</span> <span class="n">DuckDuckGoSearchRun</span><span class="p">()</span>
+
+    <span class="c1"># Executing the chains we created for &#39;Title&#39;</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">title_chain</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+
+    <span class="c1"># Executing the chains we created for &#39;Video Script&#39; by taking help of search engine &#39;DuckDuckGo&#39;</span>
+    <span class="n">search_result</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span> 
+    <span class="n">script</span> <span class="o">=</span> <span class="n">script_chain</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="n">DuckDuckGo_Search</span><span class="o">=</span><span class="n">search_result</span><span class="p">,</span><span class="n">duration</span><span class="o">=</span><span class="n">video_length</span><span class="p">)</span>
+
+    <span class="c1"># Returning the output</span>
+    <span class="k">return</span> <span class="n">search_result</span><span class="p">,</span><span class="n">title</span><span class="p">,</span><span class="n">script</span>
+</pre></div>
+</div>
+</section>
+<section id="code-application">
+<h2>Code: Application<a class="headerlink" href="#code-application" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">generate_script</span>
+<span class="kn">import</span> <span class="nn">streamlit</span> <span class="k">as</span> <span class="nn">st</span>
+
+<span class="c1"># Applying Styling</span>
+<span class="n">st</span><span class="o">.</span><span class="n">markdown</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;style&gt;</span>
+<span class="s2">div.stButton &gt; button:first-child {</span>
+<span class="s2">    background-color: #0099ff;</span>
+<span class="s2">    color:#ffffff;</span>
+<span class="s2">}</span>
+<span class="s2">div.stButton &gt; button:hover {</span>
+<span class="s2">    background-color: #00ff00;</span>
+<span class="s2">    color:#FFFFFF;</span>
+<span class="s2">    }</span>
+<span class="s2">&lt;/style&gt;&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">unsafe_allow_html</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Creating Session State Variable</span>
+<span class="k">if</span> <span class="s1">&#39;API_Key&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">:</span>
+    <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;API_Key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+<span class="n">st</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;📝 YouTube Script Generator&#39;</span><span class="p">)</span>
+
+<span class="c1"># Sidebar to capture the Google Palm API key</span>
+<span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;😎🗝️&quot;</span><span class="p">)</span>
+<span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;API_Key&#39;</span><span class="p">]</span><span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s2">&quot;What&#39;s your Google API key?&quot;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">)</span>
+<span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="s1">&#39;1. Youtube Script Writing Tool/Youtube.jpg&#39;</span>
+                 <span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">use_column_width</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Captures User Inputs</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s1">&#39;Please provide the topic of the video&#39;</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="s2">&quot;prompt&quot;</span><span class="p">)</span>  <span class="c1"># The box for the text prompt</span>
+<span class="n">video_length</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s1">&#39;Expected Video Length 🕒 (in minutes)&#39;</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="s2">&quot;video_length&quot;</span><span class="p">)</span>  <span class="c1"># The box for the text prompt</span>
+<span class="n">creativity</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">slider</span><span class="p">(</span><span class="s1">&#39;Creativity limit ✨ - (0 LOW || 1 HIGH)&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span><span class="n">step</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">submit</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Generate Script for me&quot;</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">submit</span><span class="p">:</span>
+
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;API_Key&#39;</span><span class="p">]:</span>
+        <span class="n">search_result</span><span class="p">,</span><span class="n">title</span><span class="p">,</span><span class="n">script</span> <span class="o">=</span> <span class="n">generate_script</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span><span class="n">video_length</span><span class="p">,</span><span class="n">creativity</span><span class="p">,</span><span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;API_Key&#39;</span><span class="p">])</span>
+
+        <span class="c1">#Let&#39;s generate the script</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s1">&#39;Hope you like this script ❤️&#39;</span><span class="p">)</span>
+
+        <span class="c1">#Display Title</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">subheader</span><span class="p">(</span><span class="s2">&quot;Title:🔥&quot;</span><span class="p">)</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+
+        <span class="c1">#Display Video Script</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">subheader</span><span class="p">(</span><span class="s2">&quot;Your Video Script:📝&quot;</span><span class="p">)</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">script</span><span class="p">)</span>
+
+        <span class="c1">#Display Search Engine Result</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">subheader</span><span class="p">(</span><span class="s2">&quot;Check Out - DuckDuckGo Search:🔍&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">st</span><span class="o">.</span><span class="n">expander</span><span class="p">(</span><span class="s1">&#39;Show me 👀&#39;</span><span class="p">):</span> 
+            <span class="n">st</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">search_result</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Ooopssss!!! Please provide API key.....&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="results">
+<h2>Results<a class="headerlink" href="#results" title="Link to this heading">¶</a></h2>
+<img alt="Result1" class="align-center" src="_images/1.1.jpg" />
+<img alt="Result2" class="align-center" src="_images/1.2.jpg" />
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Youtube Script Writing Tool</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Temcious.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
