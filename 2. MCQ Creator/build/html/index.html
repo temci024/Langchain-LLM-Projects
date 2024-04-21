@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MCQ - Wizard! &#8212; MCQ - Wizard 2024 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=6fefd858"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="mcq-wizard">
+<h1>MCQ - Wizard!<a class="headerlink" href="#mcq-wizard" title="Link to this heading">¶</a></h1>
+<section id="project-overview">
+<h2>Project Overview<a class="headerlink" href="#project-overview" title="Link to this heading">¶</a></h2>
+<p>This project aims to develop an MCQ (Multiple Choice Question) Wizard, a tool designed to generate multiple-choice questions from provided text content. The tool utilizes various technologies such as Streamlit for the user interface, Pinecone for vector storage and similarity search, Google Palm for language model capabilities, and Sentence Transformer for document embeddings.
+The workflow begins with the user inputting text content, typically sourced from PDF documents. The tool then processes this content using Hugging Face LLM to create document embeddings. These embeddings are stored in Pinecone for efficient similarity search.</p>
+<p>Upon receiving the text input, the tool generates five multiple-choice questions along with the correct answers. This process involves retrieving relevant documents from Pinecone based on the input text, using Google Palm to formulate questions, and finally presenting the questions and answers to the user.
+The tool offers a user-friendly interface with Streamlit, allowing users to input the directory containing PDF files and the desired text content. It also provides options to input necessary API keys for Pinecone and Google Palm. Furthermore, the interface displays instructions and feedback throughout the process to guide the user effectively.
+Overall, the MCQ Wizard serves as a valuable tool for educators, content creators, and anyone needing to quickly generate multiple-choice questions from text content, streamlining the question creation process and enhancing productivity.</p>
+</section>
+<section id="work-flow">
+<h2>Work Flow<a class="headerlink" href="#work-flow" title="Link to this heading">¶</a></h2>
+<img alt="workflow" class="align-center" src="_images/mcq.png" />
+</section>
+<section id="code-utils">
+<h2>Code: utils<a class="headerlink" href="#code-utils" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">langchain.document_loaders</span> <span class="kn">import</span> <span class="n">PyPDFDirectoryLoader</span>
+<span class="kn">from</span> <span class="nn">langchain.text_splitter</span> <span class="kn">import</span> <span class="n">RecursiveCharacterTextSplitter</span>
+<span class="kn">from</span> <span class="nn">langchain.embeddings</span> <span class="kn">import</span> <span class="n">HuggingFaceInstructEmbeddings</span>
+<span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="n">Pinecone</span> 
+<span class="kn">from</span> <span class="nn">langchain_community.embeddings.sentence_transformer</span> <span class="kn">import</span> <span class="n">SentenceTransformerEmbeddings</span>
+
+<span class="c1"># Loads PDF files available in a directory with pypdf</span>
+<span class="k">def</span> <span class="nf">load_docs</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">loader</span> <span class="o">=</span> <span class="n">PyPDFDirectoryLoader</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="n">documents</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">documents</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+<span class="c1"># Split document Into Smaller Chunks</span>
+<span class="k">def</span> <span class="nf">split_docs</span><span class="p">(</span><span class="n">documents</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span> <span class="n">chunk_overlap</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+    <span class="n">text_splitter</span> <span class="o">=</span> <span class="n">RecursiveCharacterTextSplitter</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span> <span class="n">chunk_overlap</span><span class="o">=</span><span class="n">chunk_overlap</span><span class="p">)</span>
+    <span class="n">docs</span> <span class="o">=</span> <span class="n">text_splitter</span><span class="o">.</span><span class="n">split_documents</span><span class="p">(</span><span class="n">documents</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">docs</span>
+</pre></div>
+</div>
+</section>
+<section id="code-application">
+<h2>Code: Application<a class="headerlink" href="#code-application" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">streamlit</span> <span class="k">as</span> <span class="nn">st</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">from</span> <span class="nn">pinecone</span> <span class="kn">import</span> <span class="n">Pinecone</span> <span class="k">as</span> <span class="n">PineconeClient</span>
+<span class="kn">from</span> <span class="nn">langchain.llms</span> <span class="kn">import</span> <span class="n">GooglePalm</span>
+<span class="kn">from</span> <span class="nn">langchain.chains.question_answering</span> <span class="kn">import</span> <span class="n">load_qa_chain</span>
+<span class="kn">from</span> <span class="nn">langchain.schema</span> <span class="kn">import</span> <span class="n">HumanMessage</span>
+<span class="kn">from</span> <span class="nn">langchain.prompts</span> <span class="kn">import</span> <span class="n">ChatPromptTemplate</span><span class="p">,</span> <span class="n">HumanMessagePromptTemplate</span>
+<span class="kn">from</span> <span class="nn">langchain.output_parsers</span> <span class="kn">import</span> <span class="n">StructuredOutputParser</span><span class="p">,</span> <span class="n">ResponseSchema</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">load_docs</span><span class="p">,</span> <span class="n">split_docs</span>
+<span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="n">Pinecone</span> 
+<span class="kn">from</span> <span class="nn">langchain_community.embeddings.sentence_transformer</span> <span class="kn">import</span> <span class="n">SentenceTransformerEmbeddings</span>
+
+<span class="n">load_dotenv</span><span class="p">()</span>
+
+<span class="c1"># Applying Styling</span>
+<span class="n">st</span><span class="o">.</span><span class="n">markdown</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">&lt;style&gt;</span>
+<span class="s2">div.stButton &gt; button:first-child {</span>
+<span class="s2">    background-color: #0099ff;</span>
+<span class="s2">    color:#ffffff;</span>
+<span class="s2">}</span>
+<span class="s2">div.stButton &gt; button:hover {</span>
+<span class="s2">    background-color: #00ff00;</span>
+<span class="s2">    color:#FFFFFF;</span>
+<span class="s2">}</span>
+<span class="s2">&lt;/style&gt;&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">unsafe_allow_html</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Initialize the Pinecone client</span>
+<span class="n">Pinecone_API</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PINECONE_API_KEY&quot;</span><span class="p">]</span>
+<span class="n">PineconeClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">Pinecone_API</span><span class="p">,</span> <span class="n">environment</span><span class="o">=</span><span class="s2">&quot;gcp-starter&quot;</span><span class="p">)</span>
+
+<span class="c1"># Creating Session State Variable</span>
+<span class="k">if</span> <span class="s1">&#39;Google Palm API&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">:</span>
+    <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;Google Palm API&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+<span class="n">st</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;🧠 MCQ Wizard&#39;</span><span class="p">)</span>
+
+<span class="c1"># Sidebar to capture the Pinecone API key</span>
+<span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;😎🗝️&quot;</span><span class="p">)</span>
+<span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;Pinecone Client Index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s2">&quot;Pinecone Client Index&quot;</span><span class="p">)</span>
+<span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="s1">&#39;2. MCQ Creator/pinecone_logo.png&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">use_column_width</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Sidebar to capture the Google Palm API key</span>
+<span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;😎🗝️&quot;</span><span class="p">)</span>
+<span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;Google Palm API&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s2">&quot;Google API Key:&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">)</span>
+<span class="n">st</span><span class="o">.</span><span class="n">sidebar</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="s1">&#39;2. MCQ Creator/google_api.jpg&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">use_column_width</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Input for directory</span>
+<span class="n">directory</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s1">&#39;Enter the directory containing PDF files:&#39;</span><span class="p">)</span>
+<span class="c1"># submitted1 = st.button(&#39;Submit&#39;)</span>
+<span class="n">question_content</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">text_input</span><span class="p">(</span><span class="s2">&quot;Could you kindly share the content from your document? I&#39;d be delighted to help generate MCQs from it! 😊📄&quot;</span><span class="p">)</span>
+<span class="c1"># question_content = &quot;Brain&quot;</span>
+<span class="n">submitted2</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s1">&#39;GO&#39;</span><span class="p">)</span>
+
+<span class="c1"># Load documents if directory is provided and button is clicked</span>
+<span class="k">if</span> <span class="n">submitted2</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;Google Palm API&#39;</span><span class="p">]:</span>
+            <span class="n">pdf_files</span> <span class="o">=</span> <span class="n">load_docs</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pdf_files</span><span class="p">:</span>
+                <span class="n">splitted_pdf_files</span> <span class="o">=</span> <span class="n">split_docs</span><span class="p">(</span><span class="n">pdf_files</span><span class="p">)</span>
+
+                <span class="c1"># Hugging Face LLM for creating Embeddings for documents</span>
+                <span class="n">embeddings</span> <span class="o">=</span> <span class="n">SentenceTransformerEmbeddings</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;all-MiniLM-L6-v2&quot;</span><span class="p">)</span>
+
+                <span class="n">index_name</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;Pinecone Client Index&#39;</span><span class="p">]</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">Pinecone</span><span class="o">.</span><span class="n">from_documents</span><span class="p">(</span><span class="n">splitted_pdf_files</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">,</span> <span class="n">index_name</span><span class="o">=</span><span class="n">index_name</span><span class="p">)</span>
+                
+                <span class="n">Google_API</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">session_state</span><span class="p">[</span><span class="s1">&#39;Google Palm API&#39;</span><span class="p">]</span>
+
+                <span class="c1"># Create Google Palm LLM model</span>
+                <span class="n">llm</span> <span class="o">=</span> <span class="n">GooglePalm</span><span class="p">(</span><span class="n">google_api_key</span><span class="o">=</span><span class="n">Google_API</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+
+                <span class="n">chain</span> <span class="o">=</span> <span class="n">load_qa_chain</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">chain_type</span><span class="o">=</span><span class="s2">&quot;stuff&quot;</span><span class="p">)</span>
+                
+                <span class="n">relevant_docs</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span><span class="n">question_content</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">input_documents</span><span class="o">=</span><span class="n">relevant_docs</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question_content</span><span class="p">)</span>
+
+                <span class="n">response_schemas</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">ResponseSchema</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;question&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Question generated from provided input text data.&quot;</span><span class="p">),</span>
+                    <span class="n">ResponseSchema</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;choices&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Available options for a multiple-choice question in comma separated.&quot;</span><span class="p">),</span>
+                    <span class="n">ResponseSchema</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;answer&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Correct answer for the asked question.&quot;</span><span class="p">)</span>
+                <span class="p">]</span>
+
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">StructuredOutputParser</span><span class="o">.</span><span class="n">from_response_schemas</span><span class="p">(</span><span class="n">response_schemas</span><span class="p">)</span>
+                <span class="n">format_instructions</span> <span class="o">=</span> <span class="n">output_parser</span><span class="o">.</span><span class="n">get_format_instructions</span><span class="p">()</span>
+
+                <span class="n">prompt</span> <span class="o">=</span> <span class="n">ChatPromptTemplate</span><span class="p">(</span> 
+                    <span class="n">messages</span><span class="o">=</span><span class="p">[</span><span class="n">HumanMessagePromptTemplate</span><span class="o">.</span><span class="n">from_template</span><span class="p">(</span>
+<span class="w">                        </span><span class="sd">&quot;&quot;&quot;When a text input is given by the user, </span>
+<span class="sd">                        please generate five multiple choice questions from it along with the correct answer. </span>
+<span class="sd">                        \n{format_instructions}\n{user_prompt}&quot;&quot;&quot;</span>
+                    <span class="p">)],</span> <span class="n">input_variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;user_prompt&quot;</span><span class="p">],</span> <span class="n">partial_variables</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format_instructions&quot;</span><span class="p">:</span> <span class="n">format_instructions</span><span class="p">})</span>
+
+                <span class="n">final_query</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">format_prompt</span><span class="p">(</span><span class="n">user_prompt</span><span class="o">=</span><span class="n">response</span><span class="p">)</span>
+                <span class="n">final_query_output</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">final_query</span><span class="o">.</span><span class="n">to_messages</span><span class="p">())</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">final_query_output</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No PDF files found in the directory. Please enter a valid directory.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">st</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Please provide Google Palm API key.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">st</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Please enter the directory.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="results">
+<h2>Results<a class="headerlink" href="#results" title="Link to this heading">¶</a></h2>
+<img alt="Result1" class="align-center" src="_images/2.1.jpg" />
+<img alt="Result2" class="align-center" src="_images/2.2.jpg" />
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">MCQ - Wizard</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Temcious.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

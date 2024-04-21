@@ -1,0 +1,9 @@
+langchain==0.0.284
+python-dotenv==1.0.0
+streamlit==1.22.0
+tiktoken==0.4.0
+unstructured==0.12.3
+pinecone-client==3.2.0
+pypdf==4.1.0
+sentence-transformers==2.5.1
+cryptography==3.1
