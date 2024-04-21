@@ -10,8 +10,9 @@ Overall, the MCQ Wizard serves as a valuable tool for educators, content creator
 
 
 ## Work Flow
-![workflow]build/html/_images/(mcq.png)
+![workflow](build/html/_images/(mcq.png)
 
 ## Results
-![Result1]build/html/_images/(2.1.jpg)
+![Result1](build/html/_images/(2.1.jpg)
+
 ![Result2](build/html/_images/2.2.jpg)
